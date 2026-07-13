@@ -240,6 +240,12 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
         mpv_get_property(state.mpv, "time-remaining/full", MPV_FORMAT_DOUBLE, &media_time_left_s);
         mpv_get_property(state.mpv, "pause", MPV_FORMAT_FLAG, &is_media_paused);
 
+        if (is_media_paused == 1)
+        {
+            state.discord_api->Discord_Client_ClearRichPresence(&state.discord->get());
+            continue;
+        }
+
         auto activity = discord_activity { state.discord_api };
         auto activity_type = state.media_has_video ? Discord_ActivityTypes::Watching : Discord_ActivityTypes::Listening;
         auto activity_name = state.media_filename;
@@ -258,7 +264,7 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
             auto e = std::regex_replace(state.media_filename, pattern, "$3");
             e.erase(std::remove(e.begin(), e.end(), '0'), e.end());
 
-            episode = is_media_paused ? std::format("(Paused) Season {} Episode {}", s, e) : std::format("Season {} Episode {}", s, e);
+            episode = std::format("Season {} Episode {}", s, e);
         } else {
             activity_name = std::regex_replace(state.media_filename, notFoundPattern, "$1");
         }
@@ -270,14 +276,11 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
         state.discord_api->Discord_Activity_SetDetails(&activity.get(), is_series ? &activity_details : nullptr);
         state.discord_api->Discord_Activity_SetState(&activity.get(), is_series ? &activity_state : nullptr);
 
-        if (is_media_paused == 0)
-        {
-            auto timestamps = discord_activity_timestamps { state.discord_api };
-            uint64_t now_ms = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-            state.discord_api->Discord_ActivityTimestamps_SetStart(&timestamps.get(), now_ms - (media_time_pos_s * 1'000));
-            state.discord_api->Discord_ActivityTimestamps_SetEnd(&timestamps.get(), now_ms + (media_time_left_s * 1'000));
-            state.discord_api->Discord_Activity_SetTimestamps(&activity.get(), &timestamps.get());
-        }
+        auto timestamps = discord_activity_timestamps { state.discord_api };
+        uint64_t now_ms = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+        state.discord_api->Discord_ActivityTimestamps_SetStart(&timestamps.get(), now_ms - (media_time_pos_s * 1'000));
+        state.discord_api->Discord_ActivityTimestamps_SetEnd(&timestamps.get(), now_ms + (media_time_left_s * 1'000));
+        state.discord_api->Discord_Activity_SetTimestamps(&activity.get(), &timestamps.get());
 
         state.discord_api->Discord_Client_UpdateRichPresence(&state.discord->get(), &activity.get(), on_discord_update_rich_presence, nullptr, &state);
     }
