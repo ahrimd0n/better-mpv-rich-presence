@@ -27,6 +27,7 @@ discord_api_importer::discord_api_importer(const dll::shared_library& sdk)
     , Discord_Activity_SetState_impl { dll::import_symbol<void(Discord_Activity* self, Discord_String* value)>(sdk, "Discord_Activity_SetState") }
     , Discord_Activity_SetTimestamps_impl { dll::import_symbol<void(Discord_Activity* self, Discord_ActivityTimestamps* value)>(sdk, "Discord_Activity_SetTimestamps") }
     , Discord_Activity_SetType_impl { dll::import_symbol<void(Discord_Activity* self, Discord_ActivityTypes value)>(sdk, "Discord_Activity_SetType") }
+    , Discord_Activity_SetStatusDisplayType_impl { dll::import_symbol<void(Discord_Activity* self, Discord_StatusDisplayTypes* value)>(sdk, "Discord_Activity_SetStatusDisplayType") }
     , Discord_ActivityTimestamps_Drop_impl { dll::import_symbol<void(Discord_ActivityTimestamps* self)>(sdk, "Discord_ActivityTimestamps_Drop") }
     , Discord_ActivityTimestamps_Init_impl { dll::import_symbol<void(Discord_ActivityTimestamps* self)>(sdk, "Discord_ActivityTimestamps_Init") }
     , Discord_ActivityTimestamps_SetEnd_impl { dll::import_symbol<void(Discord_ActivityTimestamps* self, uint64_t value)>(sdk, "Discord_ActivityTimestamps_SetEnd") }
@@ -77,6 +78,12 @@ void discord_api_importer::Discord_Activity_SetTimestamps(Discord_Activity* self
 void discord_api_importer::Discord_Activity_SetType(Discord_Activity* self, Discord_ActivityTypes value) const
 {
     Discord_Activity_SetType_impl(self, value);
+}
+
+void discord_api_importer::Discord_Activity_SetStatusDisplayType(Discord_Activity* self, Discord_StatusDisplayTypes* value) const
+{
+    std::puts("entered");
+    Discord_Activity_SetStatusDisplayType_impl(self, value);
 }
 
 void discord_api_importer::Discord_ActivityTimestamps_Drop(Discord_ActivityTimestamps* self) const

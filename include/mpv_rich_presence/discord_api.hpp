@@ -69,6 +69,13 @@ namespace mpvrp
         HangStatus = 6,
     };
 
+    enum class Discord_StatusDisplayTypes : int32_t
+    {
+        Name = 0,
+        State = 1,
+        Details = 2,
+    };
+
     using Discord_Client_LogCallback = void(Discord_String message, Discord_LoggingSeverity severity, void* userData);
     using Discord_Client_UpdateRichPresenceCallback = void(Discord_ClientResult* result, void* userData);
     using Discord_FreeFn = void(void* ptr);
@@ -85,6 +92,7 @@ namespace mpvrp
         void Discord_Activity_SetState(Discord_Activity* self, Discord_String* value) const;
         void Discord_Activity_SetTimestamps(Discord_Activity* self, Discord_ActivityTimestamps* value) const;
         void Discord_Activity_SetType(Discord_Activity* self, Discord_ActivityTypes value) const;
+        void Discord_Activity_SetStatusDisplayType(Discord_Activity* self, Discord_StatusDisplayTypes* value) const;
         void Discord_ActivityTimestamps_Drop(Discord_ActivityTimestamps* self) const;
         void Discord_ActivityTimestamps_Init(Discord_ActivityTimestamps* self) const;
         void Discord_ActivityTimestamps_SetEnd(Discord_ActivityTimestamps* self, uint64_t value) const;
@@ -108,6 +116,7 @@ namespace mpvrp
         std::function<void(Discord_Activity* self, Discord_String* value)> Discord_Activity_SetState_impl;
         std::function<void(Discord_Activity* self, Discord_ActivityTimestamps* value)> Discord_Activity_SetTimestamps_impl;
         std::function<void(Discord_Activity* self, Discord_ActivityTypes value)> Discord_Activity_SetType_impl;
+        std::function<void(Discord_Activity* self, Discord_StatusDisplayTypes* value)> Discord_Activity_SetStatusDisplayType_impl;
         std::function<void(Discord_ActivityTimestamps* self)> Discord_ActivityTimestamps_Drop_impl;
         std::function<void(Discord_ActivityTimestamps* self)> Discord_ActivityTimestamps_Init_impl;
         std::function<void(Discord_ActivityTimestamps* self, uint64_t value)> Discord_ActivityTimestamps_SetEnd_impl;

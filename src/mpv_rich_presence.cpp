@@ -248,33 +248,44 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
 
         auto activity = discord_activity { state.discord_api };
         auto activity_type = state.media_has_video ? Discord_ActivityTypes::Watching : Discord_ActivityTypes::Listening;
-        auto activity_name = state.media_filename;
 
-        std::regex pattern(R"((.*) S(\d+)E(\d+)\.\w\w\w\w?$)");
-        std::regex notFoundPattern(R"((.*)\.\w\w\w\w?$)");
-        std::string episode = "";
+        std::regex basename(R"((.*)\.\w\w\w\w?$)");
+        auto activity_name = std::regex_replace(state.media_filename, basename, "$1");;
 
-        bool is_series = std::regex_match(activity_name, pattern);
-        if (is_series)
+        auto display_type = Discord_StatusDisplayTypes::Name;
+
+        std::string state_string = "";
+        bool is_series = false;
+
+        if (activity_type == Discord_ActivityTypes::Watching)
         {
-            activity_name = std::regex_replace(state.media_filename, pattern, "$1");
+            std::regex pattern(R"((.*) S(\d+)E(\d+)\.\w\w\w\w?$)");
+            is_series = std::regex_match(state.media_filename, pattern);
 
-            auto s = std::regex_replace(state.media_filename, pattern, "$2");
-            s.erase(std::remove(s.begin(), s.end(), '0'), s.end());
-            auto e = std::regex_replace(state.media_filename, pattern, "$3");
-            e.erase(std::remove(e.begin(), e.end(), '0'), e.end());
+            if (is_series)
+            {
+                activity_name = std::regex_replace(state.media_filename, pattern, "$1");
 
-            episode = std::format("Season {} Episode {}", s, e);
-        } else {
-            activity_name = std::regex_replace(state.media_filename, notFoundPattern, "$1");
+                auto s = std::regex_replace(state.media_filename, pattern, "$2");
+                s.erase(std::remove(s.begin(), s.end(), '0'), s.end());
+                auto e = std::regex_replace(state.media_filename, pattern, "$3");
+                e.erase(std::remove(e.begin(), e.end(), '0'), e.end());
+
+                state_string = std::format("Season {} Episode {}", s, e);
+            }
+        } else if (!state.media_artist.empty()) {
+            activity_name = "music";
+            display_type = Discord_StatusDisplayTypes::State;
+            state_string = state.media_artist;
         }
 
         auto activity_details = Discord_String { state.media_title.data(), state.media_title.size() };
-        auto activity_state = Discord_String { episode.data(), episode.size() };
+        auto activity_state = Discord_String { state_string.data(), state_string.size() };
         state.discord_api->Discord_Activity_SetType(&activity.get(), activity_type);
+        state.discord_api->Discord_Activity_SetStatusDisplayType(&activity.get(), &display_type);
         state.discord_api->Discord_Activity_SetName(&activity.get(), { activity_name.data(), activity_name.size() });
-        state.discord_api->Discord_Activity_SetDetails(&activity.get(), is_series ? &activity_details : nullptr);
-        state.discord_api->Discord_Activity_SetState(&activity.get(), is_series ? &activity_state : nullptr);
+        state.discord_api->Discord_Activity_SetDetails(&activity.get(), is_series || !state.media_artist.empty() ? &activity_details : nullptr);
+        state.discord_api->Discord_Activity_SetState(&activity.get(), is_series || !state_string.empty() ? &activity_state : nullptr);
 
         auto timestamps = discord_activity_timestamps { state.discord_api };
         uint64_t now_ms = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
