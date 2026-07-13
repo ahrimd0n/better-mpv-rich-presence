@@ -38,6 +38,7 @@ namespace mpvrp
 
         bool media_has_audio = false;
         bool media_has_video = false;
+        std::string media_filename = "";
         std::string media_artist = "";
         std::string media_title = "";
     };

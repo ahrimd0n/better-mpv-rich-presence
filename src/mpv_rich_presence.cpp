@@ -25,6 +25,7 @@
 #include <format>
 #include <fstream>
 #include <functional>
+#include <regex>
 #include <string>
 #include <thread>
 
@@ -108,10 +109,13 @@ static void handle_file_loaded(rich_presence_state& state)
         }
     }
 
+    const char* media_filename = "";
     const char* media_artist = "";
     const char* media_title = "";
+    mpv_get_property(state.mpv, "filename", MPV_FORMAT_OSD_STRING, &media_filename);
     mpv_get_property(state.mpv, "metadata/by-key/Artist", MPV_FORMAT_OSD_STRING, &media_artist);
     mpv_get_property(state.mpv, "media-title", MPV_FORMAT_OSD_STRING, &media_title);
+    state.media_filename = media_filename == nullptr ? "" : media_filename;
     state.media_artist = media_artist == nullptr ? "" : media_artist;
     state.media_title = media_title == nullptr ? "" : media_title;
 }
@@ -238,11 +242,33 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
 
         auto activity = discord_activity { state.discord_api };
         auto activity_type = state.media_has_video ? Discord_ActivityTypes::Watching : Discord_ActivityTypes::Listening;
-        auto activity_name = !state.media_artist.empty() ? std::format("{} - {}", state.media_artist, state.media_title) : state.media_title;
-        static auto paused_state = Discord_String { "Paused", sizeof("Paused") - 1 };
+        auto activity_name = state.media_filename;
+
+        std::regex pattern(R"((.*) S(\d+)E(\d+)\.\w\w\w\w?$)");
+        std::regex notFoundPattern(R"((.*)\.\w\w\w\w?$)");
+        std::string episode = "";
+
+        bool is_series = std::regex_match(activity_name, pattern);
+        if (is_series)
+        {
+            activity_name = std::regex_replace(state.media_filename, pattern, "$1");
+
+            auto s = std::regex_replace(state.media_filename, pattern, "$2");
+            s.erase(std::remove(s.begin(), s.end(), '0'), s.end());
+            auto e = std::regex_replace(state.media_filename, pattern, "$3");
+            e.erase(std::remove(e.begin(), e.end(), '0'), e.end());
+
+            episode = is_media_paused ? std::format("(Paused) Season {} Episode {}", s, e) : std::format("Season {} Episode {}", s, e);
+        } else {
+            activity_name = std::regex_replace(state.media_filename, notFoundPattern, "$1");
+        }
+
+        auto activity_details = Discord_String { state.media_title.data(), state.media_title.size() };
+        auto activity_state = Discord_String { episode.data(), episode.size() };
         state.discord_api->Discord_Activity_SetType(&activity.get(), activity_type);
         state.discord_api->Discord_Activity_SetName(&activity.get(), { activity_name.data(), activity_name.size() });
-        state.discord_api->Discord_Activity_SetState(&activity.get(), is_media_paused == 1 ? &paused_state : nullptr);
+        state.discord_api->Discord_Activity_SetDetails(&activity.get(), is_series ? &activity_details : nullptr);
+        state.discord_api->Discord_Activity_SetState(&activity.get(), is_series ? &activity_state : nullptr);
 
         if (is_media_paused == 0)
         {

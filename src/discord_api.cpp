@@ -23,6 +23,7 @@ discord_api_importer::discord_api_importer(const dll::shared_library& sdk)
     : Discord_Activity_Drop_impl { dll::import_symbol<void(Discord_Activity* self)>(sdk, "Discord_Activity_Drop") }
     , Discord_Activity_Init_impl { dll::import_symbol<void(Discord_Activity* self)>(sdk, "Discord_Activity_Init") }
     , Discord_Activity_SetName_impl { dll::import_symbol<void(Discord_Activity* self, Discord_String value)>(sdk, "Discord_Activity_SetName") }
+    , Discord_Activity_SetDetails_impl { dll::import_symbol<void(Discord_Activity* self, Discord_String* value)>(sdk, "Discord_Activity_SetDetails") }
     , Discord_Activity_SetState_impl { dll::import_symbol<void(Discord_Activity* self, Discord_String* value)>(sdk, "Discord_Activity_SetState") }
     , Discord_Activity_SetTimestamps_impl { dll::import_symbol<void(Discord_Activity* self, Discord_ActivityTimestamps* value)>(sdk, "Discord_Activity_SetTimestamps") }
     , Discord_Activity_SetType_impl { dll::import_symbol<void(Discord_Activity* self, Discord_ActivityTypes value)>(sdk, "Discord_Activity_SetType") }
@@ -56,6 +57,11 @@ void discord_api_importer::Discord_Activity_Init(Discord_Activity* self) const
 void discord_api_importer::Discord_Activity_SetName(Discord_Activity* self, Discord_String value) const
 {
     Discord_Activity_SetName_impl(self, value);
+}
+
+void discord_api_importer::Discord_Activity_SetDetails(Discord_Activity* self, Discord_String* value) const
+{
+    Discord_Activity_SetDetails_impl(self, value);
 }
 
 void discord_api_importer::Discord_Activity_SetState(Discord_Activity* self, Discord_String* value) const
