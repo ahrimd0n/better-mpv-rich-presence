@@ -15,6 +15,7 @@
 // along with mpv-rich-presence. If not, see <https://www.gnu.org/licenses/>.
 
 #include <boost/dll.hpp>
+#include <boost/url.hpp>
 #include <cmrc/cmrc.hpp>
 #include <mpv/client.h>
 
@@ -250,7 +251,7 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
         auto activity_type = state.media_has_video ? Discord_ActivityTypes::Watching : Discord_ActivityTypes::Listening;
 
         std::regex basename(R"((.*)\.\w\w\w\w?$)");
-        auto activity_name = std::regex_replace(state.media_filename, basename, "$1");;
+        auto activity_name = std::regex_replace(state.media_filename, basename, "$1");
 
         auto display_type = Discord_StatusDisplayTypes::Name;
 
@@ -275,6 +276,13 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
             }
         } else if (!state.media_artist.empty()) {
             activity_name = "music";
+
+            boost::urls::url url("https://www.youtube.com/results");
+            url.params().append({"search_query", state.media_artist + " " + state.media_title});
+            auto activity_details_url_string = url.buffer();
+            auto activity_details_url = Discord_String { activity_details_url_string.data(), activity_details_url_string.size() };
+            state.discord_api->Discord_Activity_SetDetailsUrl(&activity.get(), &activity_details_url);
+
             display_type = Discord_StatusDisplayTypes::State;
             state_string = state.media_artist;
         }

@@ -35,7 +35,7 @@ else()
     set(DISCORD_SHARED_LIB "${DISCORD_SHARED_LIB_DIR}/libdiscord_partner_sdk.so")
 endif()
 
-find_package(Boost CONFIG REQUIRED COMPONENTS dll)
+find_package(Boost CONFIG REQUIRED COMPONENTS dll url)
 find_package(CMakeRC CONFIG REQUIRED)
     cmrc_add_resource_library(mpv-rich-presence_resources
         ALIAS mpv-rich-presence::rc
@@ -123,6 +123,7 @@ target_include_directories(mpv-rich-presence PRIVATE
 
 target_link_libraries(mpv-rich-presence PRIVATE
     Boost::dll
+    Boost::url
     mpv-rich-presence::rc)
 
 # Target mpv-rich-presence::rc -------------------------------------------------

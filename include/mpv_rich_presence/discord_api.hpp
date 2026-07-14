@@ -89,6 +89,7 @@ namespace mpvrp
         void Discord_Activity_Init(Discord_Activity* self) const;
         void Discord_Activity_SetName(Discord_Activity* self, Discord_String value) const;
         void Discord_Activity_SetDetails(Discord_Activity* self, Discord_String* value) const;
+        void Discord_Activity_SetDetailsUrl(Discord_Activity* self, Discord_String* value) const;
         void Discord_Activity_SetState(Discord_Activity* self, Discord_String* value) const;
         void Discord_Activity_SetTimestamps(Discord_Activity* self, Discord_ActivityTimestamps* value) const;
         void Discord_Activity_SetType(Discord_Activity* self, Discord_ActivityTypes value) const;
@@ -113,6 +114,7 @@ namespace mpvrp
         std::function<void(Discord_Activity*)> Discord_Activity_Init_impl;
         std::function<void(Discord_Activity* self, Discord_String value)> Discord_Activity_SetName_impl;
         std::function<void(Discord_Activity* self, Discord_String* value)> Discord_Activity_SetDetails_impl;
+        std::function<void(Discord_Activity* self, Discord_String* value)> Discord_Activity_SetDetailsUrl_impl;
         std::function<void(Discord_Activity* self, Discord_String* value)> Discord_Activity_SetState_impl;
         std::function<void(Discord_Activity* self, Discord_ActivityTimestamps* value)> Discord_Activity_SetTimestamps_impl;
         std::function<void(Discord_Activity* self, Discord_ActivityTypes value)> Discord_Activity_SetType_impl;

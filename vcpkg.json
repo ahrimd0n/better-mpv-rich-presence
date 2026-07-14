@@ -1,6 +1,7 @@
 {
   "dependencies": [
     "boost-dll",
+    "boost-url",
     "cmakerc"
   ]
 }
