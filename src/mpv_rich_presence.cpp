@@ -267,9 +267,9 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
                 activity_name = std::regex_replace(state.media_filename, pattern, "$1");
 
                 auto s = std::regex_replace(state.media_filename, pattern, "$2");
-                s.erase(std::remove(s.begin(), s.end(), '0'), s.end());
+                s.erase(0, s.find_first_not_of('0'));
                 auto e = std::regex_replace(state.media_filename, pattern, "$3");
-                e.erase(std::remove(e.begin(), e.end(), '0'), e.end());
+                e.erase(0, e.find_first_not_of('0'));
 
                 state_string = std::format("Season {} Episode {}", s, e);
             }
