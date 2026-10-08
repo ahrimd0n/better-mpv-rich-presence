@@ -190,7 +190,8 @@ static std::string format_album(mpv_handle* mpv, const std::string& title)
     return album;
 }
 
-// "OPUS • 193 kbps • 5.1 MiB • x1.1", skipping whatever mpv can't tell us (e.g. size for streams)
+// "OPUS • 193 kbps • 5.1 MiB • x1.1"
+// Skip any metric mpv can't report
 static std::string format_media_info(mpv_handle* mpv, bool has_video)
 {
     std::string result;
@@ -228,6 +229,58 @@ static std::string format_media_info(mpv_handle* mpv, bool has_video)
         append(std::format("x{:g}", speed));
 
     return result;
+}
+
+// Discord drops the entire activity if any text field is over 128 bytes. "•" and "—" are 3 bytes each in UTF-8
+// The limits are counted in bytes, not characters
+static constexpr size_t DISCORD_MAX_FIELD_BYTES = 128;
+static constexpr std::string_view FIELD_SEPARATOR = " • ";
+
+// Cuts a string down to max_bytes without splitting a UTF-8 character
+static std::string truncate_utf8(std::string s, size_t max_bytes = DISCORD_MAX_FIELD_BYTES)
+{
+    if (s.size() <= max_bytes)
+        return s;
+
+    constexpr std::string_view ELLIPSIS = "…";
+    size_t cut = max_bytes - ELLIPSIS.size();
+    while (cut > 0 && (static_cast<unsigned char>(s[cut]) & 0xC0) == 0x80) // skip UTF-8 continuation bytes
+        --cut;
+    s.resize(cut);
+    while (!s.empty() && s.back() == ' ')
+        s.pop_back();
+    return s + std::string { ELLIPSIS };
+}
+
+// "Title — Album" if it fits, otherwise just the truncated title
+static std::string fit_details(const std::string& title, const std::string& album)
+{
+    if (!album.empty())
+    {
+        auto full = title + " — " + album;
+        if (full.size() <= DISCORD_MAX_FIELD_BYTES)
+            return full;
+    }
+    return truncate_utf8(title);
+}
+
+// "Artist • Artist • ... • info". Drops artists from the end until it fits
+// If first artist doesn't fit alongside the info, the info is dropped and the first artist is truncated
+static std::string fit_state(std::string primary, const std::string& info)
+{
+    auto join = [](const std::string& a, const std::string& b) {
+        return a.empty() || b.empty() ? a + b : a + std::string { FIELD_SEPARATOR } + b;
+    };
+
+    while (join(primary, info).size() > DISCORD_MAX_FIELD_BYTES)
+    {
+        auto pos = primary.rfind(FIELD_SEPARATOR);
+        if (pos == std::string::npos)
+            return truncate_utf8(primary.empty() ? info : primary);
+        primary.resize(pos);
+    }
+
+    return join(primary, info);
 }
 
 void on_discord_log(Discord_String msg, Discord_LoggingSeverity severity, void* payload)
@@ -396,12 +449,13 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
             display_type = Discord_StatusDisplayTypes::State;
             state_string = state.media_artist;
 
-            if (auto album = format_album(state.mpv, state.media_title); !album.empty())
-                details_string += " — " + album;
+            details_string = fit_details(state.media_title, format_album(state.mpv, state.media_title));
         }
 
-        if (auto info = format_media_info(state.mpv, state.media_has_video); !info.empty())
-            state_string += (state_string.empty() ? ""s : " • "s) + info;
+        // Make sure every field stays within Discord's limit, otherwise the whole presence vanishes
+        state_string = fit_state(state_string, format_media_info(state.mpv, state.media_has_video));
+        details_string = truncate_utf8(details_string);
+        activity_name = truncate_utf8(activity_name);
 
         auto activity_details = Discord_String { details_string.data(), details_string.size() };
         auto activity_state = Discord_String { state_string.data(), state_string.size() };
