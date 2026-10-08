@@ -19,8 +19,11 @@
 #include <cmrc/cmrc.hpp>
 #include <mpv/client.h>
 
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -86,6 +89,8 @@ static void handle_client_message(rich_presence_state& state, int64_t& applicati
     if (is_enabled_prev.has_value() && state.is_enabled.has_value() && state.is_enabled != is_enabled_prev)
         mpv_show(state.mpv, std::format("Rich presence {}", *state.is_enabled ? "enabled" : "disabled"));
 }
+
+static std::string format_artists(std::string artists);
 
 static void handle_file_loaded(rich_presence_state& state)
 {
@@ -155,6 +160,71 @@ static std::string format_artists(std::string artists)
 
         start = end + 1;
     }
+
+    return result;
+}
+
+static std::string get_mpv_string(mpv_handle* mpv, const char* name)
+{
+    std::string result;
+    if (char* value = mpv_get_property_string(mpv, name))
+    {
+        result = value;
+        mpv_free(value);
+    }
+    return result;
+}
+
+// "Album (Year)", or empty if the file has no album tag
+static std::string format_album(mpv_handle* mpv)
+{
+    auto album = get_mpv_string(mpv, "metadata/by-key/Album");
+    if (album.empty())
+        return album;
+
+    auto date = get_mpv_string(mpv, "metadata/by-key/Date");
+    if (date.size() >= 4 && std::all_of(date.begin(), date.begin() + 4, [](unsigned char c) { return std::isdigit(c); }))
+        album += std::format(" ({})", date.substr(0, 4));
+
+    return album;
+}
+
+// "OPUS • 193 kbps • 5.1 MiB • x1.1", skipping whatever mpv can't tell us (e.g. size for streams)
+static std::string format_media_info(mpv_handle* mpv, bool has_video)
+{
+    std::string result;
+    auto append = [&result](const std::string& part) {
+        if (part.empty())
+            return;
+        if (!result.empty())
+            result += " • ";
+        result += part;
+    };
+
+    auto codec = get_mpv_string(mpv, has_video ? "current-tracks/video/codec" : "current-tracks/audio/codec");
+    std::transform(codec.begin(), codec.end(), codec.begin(), [](unsigned char c) { return std::toupper(c); });
+    append(codec);
+
+    int64_t height = 0;
+    if (has_video && mpv_get_property(mpv, "height", MPV_FORMAT_INT64, &height) >= 0 && height > 0)
+        append(std::format("{}p", height));
+
+    int64_t size_bytes = 0;
+    if (mpv_get_property(mpv, "file-size", MPV_FORMAT_INT64, &size_bytes) >= 0 && size_bytes > 0)
+    {
+        // average bitrate (audio only, it's rarely interesting for video)
+        double duration_s = 0.0;
+        if (!has_video && mpv_get_property(mpv, "duration", MPV_FORMAT_DOUBLE, &duration_s) >= 0 && duration_s > 0.0)
+            append(std::format("{:.0f} kbps", size_bytes * 8.0 / duration_s / 1'000.0));
+
+        constexpr double MIB = 1024.0 * 1024.0;
+        const double size_mib = size_bytes / MIB;
+        append(size_mib >= 1024.0 ? std::format("{:.1f} GiB", size_mib / 1024.0) : std::format("{:.1f} MiB", size_mib));
+    }
+
+    double speed = 1.0;
+    if (mpv_get_property(mpv, "speed", MPV_FORMAT_DOUBLE, &speed) >= 0 && std::abs(speed - 1.0) > 0.005)
+        append(std::format("x{:g}", speed));
 
     return result;
 }
@@ -294,6 +364,7 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
         auto display_type = Discord_StatusDisplayTypes::Name;
 
         std::string state_string = "";
+        std::string details_string = state.media_title;
         bool is_series = false;
 
         if (activity_type == Discord_ActivityTypes::Watching)
@@ -323,9 +394,15 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
 
             display_type = Discord_StatusDisplayTypes::State;
             state_string = state.media_artist;
+
+            if (auto album = format_album(state.mpv); !album.empty())
+                details_string += " • " + album;
         }
 
-        auto activity_details = Discord_String { state.media_title.data(), state.media_title.size() };
+        if (auto info = format_media_info(state.mpv, state.media_has_video); !info.empty())
+            state_string += (state_string.empty() ? ""s : " • "s) + info;
+
+        auto activity_details = Discord_String { details_string.data(), details_string.size() };
         auto activity_state = Discord_String { state_string.data(), state_string.size() };
         state.discord_api->Discord_Activity_SetType(&activity.get(), activity_type);
         state.discord_api->Discord_Activity_SetStatusDisplayType(&activity.get(), &display_type);
