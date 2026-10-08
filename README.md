@@ -1,14 +1,23 @@
-# mpv-rich-presence
+<h1 align="center">
+  better-mpv-rich-presence
+</h1>
 
-[![Version](https://img.shields.io/github/v/release/goodtrailer/mpv-rich-presence.svg?color=green&style=flat-square)](https://github.com/goodtrailer/mpv-rich-presence/releases/latest)
-[![CodeFactor](https://www.codefactor.io/repository/github/goodtrailer/mpv-rich-presence/badge/main?style=flat-square)](https://www.codefactor.io/repository/github/goodtrailer/mpv-rich-presence/overview/main)
-[![License](https://img.shields.io/github/license/goodtrailer/mpv-rich-presence.svg?color=blue&style=flat-square)](https://github.com/goodtrailer/mpv-rich-presence/blob/master/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/goodtrailer/mpv-rich-presence/total.svg?color=orange&style=flat-square)](https://somsubhra.github.io/github-release-stats/?username=goodtrailer&repository=mpv-rich-presence&page=1&per_page=0)
+<h4 align="center">
+An non-lobotomized mpv plugin for displaying currently playing media on Discord
+<br />
+Forked from <a href="https://github.com/Dar-krusos/mpv-rich-presence">mpv-rich-presence</a>, which in itself is a fork of <a href="https://github.com/goodtrailer/mpv-rich-presence">mpv-rich-presence</a>
+</h4>
+
+[![Version](https://img.shields.io/github/v/release/ahrimd0n/mpv-rich-presence.svg?color=green&style=flat-square)](https://github.com/ahrimd0n/mpv-rich-presence/releases/latest)
+[![CodeFactor](https://www.codefactor.io/repository/github/ahrimd0n/mpv-rich-presence/badge/main?style=flat-square)](https://www.codefactor.io/repository/github/ahrimd0n/mpv-rich-presence/overview/main)
+[![License](https://img.shields.io/github/license/ahrimd0n/mpv-rich-presence.svg?color=blue&style=flat-square)](https://github.com/ahrimd0n/mpv-rich-presence/blob/master/LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/ahrimd0n/mpv-rich-presence/total.svg?color=orange&style=flat-square)](https://somsubhra.github.io/github-release-stats/?username=ahrimd0n&repository=mpv-rich-presence&page=1&per_page=0)
 
 
 Windows/Linux mpv plugin for Discord Rich Presence (that doesn't suck), using the Discord Social SDK. Yes, the Discord Social SDK is a bit overkill, but the legacy [discord-rpc](https://github.com/discord/discord-rpc) library doesn't seem to support overriding the application name, which is used here to display the current media being played.
 
-<p align="center"><img src="assets/preview.png" alt="preview image" width="725"></p>
+<p align="left"><img src="assets/preview.png" alt="preview image large"></p>
+
 
 ## Installation
 
@@ -34,7 +43,7 @@ Simply merge the contents of the distribution into your mpv config folder (e.g. 
 
 First, clone the repository *including submodules*:
 ```bash
-git clone --recursive https://github.com/goodtrailer/mpv-rich-presence
+git clone --recursive https://github.com/ahrimd0n/mpv-rich-presence
 ```
 
 Download the [Discord Social SDK](https://discord.com/developers/social-sdk). Unpack its contents into `thirdparty/discord_social_sdk`, such that `bin` is placed as `thirdparty/discord_social_sdk/bin`. Afterwards, set up vcpkg with one of the following (depending on your platform):
@@ -51,7 +60,7 @@ cmake --preset default
 > [!TIP]
 > You probably want to set the CMake variable `VCPKG_TARGET_TRIPLET` to the *static* version of your platform's triplet. Otherwise, the build may depend on Boost's shared libraries, which is less convenient for installation as an mpv plugin. On Linux, the default triplet `x64-linux` works as suggested. On Windows, use the `x64-windows-static-md` triplet, e.g.
 > ```bash
-> cmake -D VCPKG_TARGET_TRIPLET:STRING=x64-windows-static-md build
+> cmake -D VCPKG_TARGET_TRIPLET:STRING=x64-windows-static-m d build
 > ```
 
 ### Compilation/Packaging
@@ -61,3 +70,7 @@ cmake --build build
 cmake --build build --target install
 ```
 If everything worked correctly, the complete binary distribution should be located in `install/mpv-rich-presence`.
+
+### Credits
+- Original Developer & Repository - https://github.com/goodtrailer/mpv-rich-presence
+- Fork of the original that this repository is forked from - https://github.com/Dar-krusos/mpv-rich-presence
