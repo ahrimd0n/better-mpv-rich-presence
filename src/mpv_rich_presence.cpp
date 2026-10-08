@@ -118,7 +118,45 @@ static void handle_file_loaded(rich_presence_state& state)
     mpv_get_property(state.mpv, "media-title", MPV_FORMAT_OSD_STRING, &media_title);
     state.media_filename = media_filename == nullptr ? "" : media_filename;
     state.media_artist = media_artist == nullptr ? "" : media_artist;
+    state.media_artist = format_artists(state.media_artist);
     state.media_title = media_title == nullptr ? "" : media_title;
+}
+
+static std::string format_artists(std::string artists)
+{
+    std::string result;
+    size_t start = 0;
+
+    while (start < artists.size())
+    {
+        size_t end = artists.find(';', start);
+
+        std::string artist = artists.substr(
+            start,
+            end == std::string::npos ? std::string::npos : end - start
+        );
+
+        // Trim leading/trailing whitespace
+        const auto first = artist.find_first_not_of(" \t");
+        const auto last = artist.find_last_not_of(" \t");
+
+        if (first != std::string::npos)
+        {
+            artist = artist.substr(first, last - first + 1);
+
+            if (!result.empty())
+                result += " • ";
+
+            result += artist;
+        }
+
+        if (end == std::string::npos)
+            break;
+
+        start = end + 1;
+    }
+
+    return result;
 }
 
 void on_discord_log(Discord_String msg, Discord_LoggingSeverity severity, void* payload)
@@ -277,11 +315,11 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
         } else if (!state.media_artist.empty()) {
             activity_name = "music";
 
-            boost::urls::url url("https://www.youtube.com/results");
-            url.params().append({"search_query", state.media_artist + " " + state.media_title});
-            auto activity_details_url_string = url.buffer();
-            auto activity_details_url = Discord_String { activity_details_url_string.data(), activity_details_url_string.size() };
-            state.discord_api->Discord_Activity_SetDetailsUrl(&activity.get(), &activity_details_url);
+            // boost::urls::url url("https://www.youtube.com/results");
+            // url.params().append({"search_query", state.media_artist + " " + state.media_title});
+            // auto activity_details_url_string = url.buffer();
+            // auto activity_details_url = Discord_String { activity_details_url_string.data(), activity_details_url_string.size() };
+            // state.discord_api->Discord_Activity_SetDetailsUrl(&activity.get(), &activity_details_url);
 
             display_type = Discord_StatusDisplayTypes::State;
             state_string = state.media_artist;
