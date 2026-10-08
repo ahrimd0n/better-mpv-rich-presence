@@ -175,12 +175,13 @@ static std::string get_mpv_string(mpv_handle* mpv, const char* name)
     return result;
 }
 
-// "Album (Year)", or empty if the file has no album tag
-static std::string format_album(mpv_handle* mpv)
+// "Album (Year)", or empty if there is no album tag or it just repeats the title (singles)
+static std::string format_album(mpv_handle* mpv, const std::string& title)
 {
     auto album = get_mpv_string(mpv, "metadata/by-key/Album");
-    if (album.empty())
-        return album;
+    auto same_char = [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); };
+    if (album.empty() || (album.size() == title.size() && std::equal(album.begin(), album.end(), title.begin(), same_char)))
+        return {};
 
     auto date = get_mpv_string(mpv, "metadata/by-key/Date");
     if (date.size() >= 4 && std::all_of(date.begin(), date.begin() + 4, [](unsigned char c) { return std::isdigit(c); }))
@@ -395,8 +396,8 @@ auto mpv_open_cplugin_impl(mpv_handle* ctx) -> int
             display_type = Discord_StatusDisplayTypes::State;
             state_string = state.media_artist;
 
-            if (auto album = format_album(state.mpv); !album.empty())
-                details_string += " • " + album;
+            if (auto album = format_album(state.mpv, state.media_title); !album.empty())
+                details_string += " — " + album;
         }
 
         if (auto info = format_media_info(state.mpv, state.media_has_video); !info.empty())
